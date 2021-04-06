@@ -1,0 +1,187 @@
+#include <iostream>
+#include <tuple>
+#include <math.h>
+# define M_PI           3.14159265358979323846  
+
+struct Element {
+    int number;
+    double result;
+    double fn;
+};
+
+
+class Calculator {
+
+private:
+    int buffer_size;
+    int last_calculated_number;
+    int transaction_count;
+    double n;
+    Element* buffer;
+
+
+    double _calculate(int number) {
+        return transaction_count;
+    }
+
+    double func(int number) {
+        for (int j = 0;j <= number;j++)
+        {
+            n += sin(j * M_PI / 180)* j;
+        }
+        return n;
+    }
+
+
+    int _getPriority(int index) {
+        return (transaction_count - 1 - index) % buffer_size;
+    }
+
+    Element* _getElementByIndex(int index) {
+        if (index >= buffer_size || index < 0 || transaction_count <= index) {
+            return nullptr;
+        }
+        return buffer + _getPriority(index);
+    }
+
+    
+    int _getElementByNumber(int number,Element * element) {
+        int length = transaction_count < buffer_size ? transaction_count : buffer_size;
+
+
+        for (int i = 0; i < length; i++) {
+            Element* el = (buffer + i);
+            if (el->number == number) {
+
+                if (element) {
+                    *element = *el;
+                }
+
+                return _getPriority(i);
+            }
+        }
+
+        return -1;
+    }
+
+public:
+    Calculator() {
+        buffer_size = 0;
+        last_calculated_number = 0;
+        transaction_count = 0;
+        buffer = nullptr;
+    }
+
+    ~Calculator() {
+        if (buffer) {
+            delete[] buffer;
+        }
+    }
+
+    void setCacheSize(int size) {
+        if (buffer) {
+            return;
+        }
+        buffer_size = size;
+        buffer = new Element[size];
+    }
+
+
+    double calculate(int number) {
+        Element* element = nullptr;
+        int priority = _getElementByNumber(number , element);
+
+        if (!element) {
+            element = new Element();
+            element->number = number;
+            element->result = _calculate(number);
+            element->fn = func(number);
+        }
+
+      
+        if (priority > -1) {
+
+            if (last_calculated_number != number) {
+                last_calculated_number = number;
+                return element->number;
+            }
+
+            
+            if (priority < 1 ) {
+                return element->number;
+            }
+
+            int current_index = _getPriority(priority);
+            int prev_index = _getPriority(priority - 1);
+
+            
+            Element temp = *(buffer + current_index);
+            *(buffer + current_index) = *(buffer + prev_index);
+            *(buffer + prev_index) = temp;
+
+            return element->number;
+        }
+
+        buffer[transaction_count++ % 3] = *element;
+        last_calculated_number = number;
+
+        double result = element->result;
+        delete element;
+
+
+        return result;
+    }
+
+    double getCacheElement(int index) {
+        Element* element = _getElementByIndex(index);
+        return element ? element->fn : -1;
+    }
+
+    void dumpBuffer() {
+ 
+
+        for (int i = 0; i < buffer_size; i++) {
+
+            if (i >= transaction_count) {
+                std::cout << "- ,";
+                continue;
+            }
+
+            int p = _getPriority(i);
+
+            Element* el = (buffer + p);
+            std::cout << el->fn << " ,";
+        }
+
+        std::cout << "\n";
+    }
+
+};
+
+int main()
+{
+    Calculator calc;
+    calc.setCacheSize(3);
+    calc.dumpBuffer();
+    calc.calculate(5);
+    calc.dumpBuffer();
+    calc.calculate(20);
+    calc.dumpBuffer();
+    calc.calculate(10);
+    calc.dumpBuffer();
+    calc.calculate(5);
+    calc.dumpBuffer();
+    calc.calculate(5);
+    calc.dumpBuffer();
+    calc.calculate(5);
+    calc.dumpBuffer();
+    calc.calculate(2);
+    calc.dumpBuffer();
+    calc.calculate(3);
+    calc.dumpBuffer();
+
+    std::cout << calc.getCacheElement(0) << "\n";
+    std::cout << calc.getCacheElement(1) << "\n";
+    std::cout << calc.getCacheElement(2) << "\n";
+    std::cout << calc.getCacheElement(3) << "\n";
+}
